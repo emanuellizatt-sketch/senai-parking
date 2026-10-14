@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>SENAI Parking | Veículos</title>
+
+  <link rel="stylesheet" href="css/style.css">
+
+</head>
+
+<body>
+
+  <div class="topbar">
+
+    <a class="brand" href="painel.html">
+      <div class="brand-mark">S</div>
+
+      <div>
+        SENAI Parking
+        <small>Blumenau • Agendamento</small>
+      </div>
+    </a>
+
+    <nav class="topnav">
+      <a href="painel.html">Painel</a>
+      <a href="agendar.html">Agendar</a>
+      <a href="veiculos.html">Meu veículo</a>
+      <a href="minhas-vagas.html">Minhas vagas</a>
+      <a href="sancoes.html">Sanções</a>
+    </nav>
+
+  </div>
+
+  <div class="page">
+
+  <aside class="sidebar">
+
+    <div class="side-title">Operação</div>
+
+    <a class="side-link" href="painel.html">
+      ▦ Painel geral
+    </a>
+
+    <a class="side-link" href="agendar.html">
+      ＋ Novo agendamento
+    </a>
+
+    <a class="side-link active" href="veiculos.html">
+      ▸ Meu veículo
+    </a>
+
+    <a class="side-link" href="minhas-vagas.html">
+      ◷ Meus agendamentos
+    </a>
+
+    <a class="side-link" href="sancoes.html">
+      ⚠ Sanções
+    </a>
+
+    <div class="side-title" style="margin-top:18px">
+      Projeto
+    </div>
+
+    <a class="side-link" href="sobre.html">
+      ⓘ Sobre o projeto
+    </a>
+
+  </aside>
+
+  <div class="vehicle-page">
+    <div class="vehicle-container">
+
+      <div class="page-header">
+        <div>
+          <h1>Veículos</h1>
+          <p>Consulte e cadastre os veículos vinculados ao usuário.</p>
+        </div>
+      </div>
+
+
+      <!-- ============================= -->
+      <!-- MEU VEÍCULO -->
+      <!-- ============================= -->
+
+      <div class="vehicle-grid">
+
+        <section class="vehicle-card">
+
+          <h2>Meu veículo</h2>
+
+          <div id="meuVeiculo" class="vehicle-info">
+            <div class="empty-message">
+              Carregando informações...
+            </div>
+          </div>
+
+        </section>
+
+
+        <!-- ============================= -->
+        <!-- CADASTRAR VEÍCULO -->
+        <!-- ============================= -->
+
+        <section class="vehicle-card">
+
+          <h2>Cadastrar veículo</h2>
+
+          <form id="vehicleForm">
+
+            <div class="field">
+              <label for="placa">
+                Placa
+              </label>
+
+              <input
+                type="text"
+                id="placa"
+                placeholder="Ex.: ABC1D23"
+                maxlength="7"
+                required
+              >
+            </div>
+
+
+            <div class="field">
+              <label for="cor">
+                Cor
+              </label>
+
+              <input
+                type="text"
+                id="cor"
+                placeholder="Ex.: Prata"
+                required
+              >
+            </div>
+
+
+            <div class="field">
+              <label for="marca">
+                Marca
+              </label>
+
+              <select id="marca" required>
+                <option value="">
+                  Selecione uma marca...
+                </option>
+              </select>
+            </div>
+
+
+            <div class="field">
+              <label for="modelo">
+                Modelo
+              </label>
+
+              <select id="modelo" required disabled>
+                <option value="">
+                  Primeiro selecione uma marca...
+                </option>
+              </select>
+            </div>
+
+
+            <button
+              type="submit"
+              class="btn btn-primary"
+              style="width:100%;"
+            >
+              Cadastrar veículo
+            </button>
+
+          </form>
+
+        </section>
+
+      </div>
+
+
+      <!-- ============================= -->
+      <!-- MARCAS -->
+      <!-- ============================= -->
+
+      <section class="vehicle-card list-section">
+
+        <h2>Marcas cadastradas</h2>
+
+        <div
+          id="listaMarcas"
+          class="data-list"
+        >
+          <div class="empty-message">
+            Carregando marcas...
+          </div>
+        </div>
+
+      </section>
+
+
+      <!-- ============================= -->
+      <!-- MODELOS -->
+      <!-- ============================= -->
+
+      <section class="vehicle-card list-section">
+
+        <h2>Modelos cadastrados</h2>
+
+        <div
+          id="listaModelos"
+          class="data-list"
+        >
+          <div class="empty-message">
+            Carregando modelos...
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+
+  <!-- O seu JS principal -->
+  <script src="js/app.js"></script>
+
+
+  <!-- ================================= -->
+  <!-- CONTROLE DA PÁGINA DE VEÍCULOS -->
+  <!-- ================================= -->
+
+  <script>
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+      /*
+       * Garante que marcas, modelos e veículos
+       * sejam criados antes de aparecerem na página.
+       */
+      inicializarDadosVeiculos();
+
+
+      // ===============================
+      // PEGAR DADOS DO BANCO LOCAL
+      // ===============================
+
+      function carregarDados() {
+
+        const marcas = getDB('marcas');
+        const modelos = getDB('modelos');
+        const veiculos = getDB('veiculos');
+
+        return {
+          marcas,
+          modelos,
+          veiculos
+        };
+      }
+
+
+      // ===============================
+      // MOSTRAR MARCAS
+      // ===============================
+
+      function mostrarMarcas() {
+
+        const { marcas } = carregarDados();
+
+        const selectMarca =
+          document.getElementById('marca');
+
+        const listaMarcas =
+          document.getElementById('listaMarcas');
+
+
+        // Preenche o select
+
+        selectMarca.innerHTML =
+          '<option value="">Selecione uma marca...</option>' +
+
+          marcas.map(marca => `
+            <option value="${marca.id_marca}">
+              ${marca.nome_marca}
+            </option>
+          `).join('');
+
+
+        // Mostra as marcas na lista
+
+        if (!marcas.length) {
+
+          listaMarcas.innerHTML = `
+            <div class="empty-message">
+              Nenhuma marca cadastrada.
+            </div>
+          `;
+
+          return;
+        }
+
+
+        listaMarcas.innerHTML =
+          marcas.map(marca => `
+            <div class="data-item">
+              <strong>
+                ${marca.nome_marca}
+              </strong>
+
+              <small>
+                ID da marca: ${marca.id_marca}
+              </small>
+            </div>
+          `).join('');
+      }
+
+
+      // ===============================
+      // MOSTRAR MODELOS
+      // ===============================
+
+      function mostrarModelos() {
+
+        const { marcas, modelos } =
+          carregarDados();
+
+        const listaModelos =
+          document.getElementById('listaModelos');
+
+
+        if (!modelos.length) {
+
+          listaModelos.innerHTML = `
+            <div class="empty-message">
+              Nenhum modelo cadastrado.
+            </div>
+          `;
+
+          return;
+        }
+
+
+        listaModelos.innerHTML =
+          modelos.map(modelo => {
+
+            const marca =
+              marcas.find(
+                m =>
+                  Number(m.id_marca) ===
+                  Number(modelo.id_marca)
+              );
+
+
+            return `
+              <div class="data-item">
+
+                <strong>
+                  ${modelo.nome_modelo}
+                </strong>
+
+                <small>
+                  Marca:
+                  ${marca
+                    ? marca.nome_marca
+                    : 'Não encontrada'}
+                  • ID do modelo:
+                  ${modelo.id_modelo}
+                </small>
+
+              </div>
+            `;
+
+          }).join('');
+      }
+
+
+      // ===============================
+      // FILTRAR MODELOS PELA MARCA
+      // ===============================
+
+      document
+        .getElementById('marca')
+        .addEventListener('change', function () {
+
+          const idMarca = this.value;
+
+          const selectModelo =
+            document.getElementById('modelo');
+
+
+          if (!idMarca) {
+
+            selectModelo.disabled = true;
+
+            selectModelo.innerHTML = `
+              <option value="">
+                Primeiro selecione uma marca...
+              </option>
+            `;
+
+            return;
+          }
+
+
+          const { modelos } =
+            carregarDados();
+
+
+          const modelosDaMarca =
+            modelos.filter(
+              modelo =>
+                Number(modelo.id_marca) ===
+                Number(idMarca)
+            );
+
+
+          selectModelo.disabled = false;
+
+
+          if (!modelosDaMarca.length) {
+
+            selectModelo.innerHTML = `
+              <option value="">
+                Nenhum modelo encontrado
+              </option>
+            `;
+
+            return;
+          }
+
+
+          selectModelo.innerHTML =
+            '<option value="">Selecione um modelo...</option>' +
+
+            modelosDaMarca.map(modelo => `
+              <option value="${modelo.id_modelo}">
+                ${modelo.nome_modelo}
+              </option>
+            `).join('');
+
+        });
+
+
+      // ===============================
+      // MOSTRAR MEU VEÍCULO
+      // ===============================
+
+      function mostrarMeuVeiculoPagina() {
+
+        const usuarioId =
+          Number(
+            localStorage.getItem('senaiUserId')
+          );
+
+
+        const { marcas, modelos, veiculos } =
+          carregarDados();
+
+
+        const meuVeiculo =
+          veiculos.find(
+            veiculo =>
+              Number(veiculo.id_usuario) ===
+              usuarioId
+          );
+
+
+        const container =
+          document.getElementById('meuVeiculo');
+
+
+        if (!meuVeiculo) {
+
+          container.innerHTML = `
+            <div class="empty-message">
+              Nenhum veículo cadastrado para este usuário.
+            </div>
+          `;
+
+          return;
+        }
+
+
+        const modelo =
+          modelos.find(
+            m =>
+              Number(m.id_modelo) ===
+              Number(meuVeiculo.id_modelo)
+          );
+
+
+        const marca =
+          modelo
+            ? marcas.find(
+                m =>
+                  Number(m.id_marca) ===
+                  Number(modelo.id_marca)
+              )
+            : null;
+
+
+        container.innerHTML = `
+
+          <div class="info-row">
+            <span>Placa</span>
+            <strong>
+              ${meuVeiculo.id_placa || 'Não cadastrada'}
+            </strong>
+          </div>
+
+          <div class="info-row">
+            <span>Cor</span>
+            <strong>
+              ${meuVeiculo.cor || 'Não cadastrada'}
+            </strong>
+          </div>
+
+          <div class="info-row">
+            <span>Modelo</span>
+            <strong>
+              ${modelo
+                ? modelo.nome_modelo
+                : 'Não cadastrado'}
+            </strong>
+          </div>
+
+          <div class="info-row">
+            <span>Marca</span>
+            <strong>
+              ${marca
+                ? marca.nome_marca
+                : 'Não cadastrada'}
+            </strong>
+          </div>
+
+        `;
+      }
+
+
+      // ===============================
+      // CADASTRAR VEÍCULO
+      // ===============================
+
+      document
+        .getElementById('vehicleForm')
+        .addEventListener('submit', function (event) {
+
+          event.preventDefault();
+
+
+          const placa =
+            document
+              .getElementById('placa')
+              .value
+              .trim()
+              .toUpperCase();
+
+
+          const cor =
+            document
+              .getElementById('cor')
+              .value
+              .trim();
+
+
+          const idMarca =
+            document
+              .getElementById('marca')
+              .value;
+
+
+          const idModelo =
+            document
+              .getElementById('modelo')
+              .value;
+
+
+          const usuarioId =
+            Number(
+              localStorage.getItem('senaiUserId')
+            );
+
+
+          if (!usuarioId) {
+
+            toast(
+              'Faça login antes de cadastrar um veículo.'
+            );
+
+            return;
+          }
+
+
+          if (!placa || !cor || !idMarca || !idModelo) {
+
+            toast(
+              'Preencha todos os campos.'
+            );
+
+            return;
+          }
+
+
+          // Confere se o modelo realmente pertence à marca escolhida
+
+          const modelos =
+            getDB('modelos');
+
+
+          const modelo =
+            modelos.find(
+              m =>
+                Number(m.id_modelo) ===
+                Number(idModelo)
+            );
+
+
+          if (!modelo) {
+
+            toast(
+              'Modelo não encontrado.'
+            );
+
+            return;
+          }
+
+
+          if (
+            Number(modelo.id_marca) !==
+            Number(idMarca)
+          ) {
+
+            toast(
+              'O modelo não pertence à marca selecionada.'
+            );
+
+            return;
+          }
+
+
+          // Verifica se a placa já existe
+
+          const veiculos =
+            getDB('veiculos');
+
+
+          const placaExistente =
+            veiculos.find(
+              v =>
+                String(v.id_placa).toUpperCase() ===
+                placa
+            );
+
+
+          if (placaExistente) {
+
+            toast(
+              'Essa placa já está cadastrada.'
+            );
+
+            return;
+          }
+
+
+          // Usa a função que já existe no app.js
+
+          const resultado =
+            cadastrarVeiculo(
+              placa,
+              cor,
+              Number(idModelo),
+              usuarioId
+            );
+
+
+          if (!resultado || !resultado.sucesso) {
+
+            toast(
+              resultado?.mensagem ||
+              'Não foi possível cadastrar o veículo.'
+            );
+
+            return;
+          }
+
+
+          toast(
+            'Veículo cadastrado com sucesso!'
+          );
+
+
+          // Limpa formulário
+
+          document
+            .getElementById('vehicleForm')
+            .reset();
+
+
+          document
+            .getElementById('modelo')
+            .disabled = true;
+
+
+          document
+            .getElementById('modelo')
+            .innerHTML = `
+              <option value="">
+                Primeiro selecione uma marca...
+              </option>
+            `;
+
+
+          // Atualiza informações
+
+          mostrarMeuVeiculoPagina();
+          mostrarMarcas();
+          mostrarModelos();
+
+        });
+
+
+      // ===============================
+      // INICIALIZA A PÁGINA
+      // ===============================
+
+      mostrarMarcas();
+      mostrarModelos();
+      mostrarMeuVeiculoPagina();
+
+    });
+
+  </script>
+
+</body>
+</html>
