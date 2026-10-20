@@ -985,3 +985,25 @@ a {
         padding: 18px;
       }
     }
+    #vehicleSelector {
+  font-size: 15px;
+  font-weight: 500;
+  color: #536270;
+}
+
+.vehicle-info {
+  display: grid;
+  gap: 16px;
+}
+
+.vehicle-item-card {
+  border: 1px solid #e1e6eb;
+  border-radius: 12px;
+  padding: 18px;
+  background: #fff;
+  margin-bottom: 14px;
+}
+
+.vehicle-item-card .btn {
+  margin-top: 16px;
+}

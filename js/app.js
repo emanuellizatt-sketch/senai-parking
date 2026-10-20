@@ -135,8 +135,9 @@ const parkingBlocks = {
 };
 
 let selected = null;
-let currentBlock = 'H';
 
+const blocoURL = new URLSearchParams(window.location.search).get('bloco');
+let currentBlock = ['A', 'C', 'H'].includes(blocoURL) ? blocoURL : 'H';
 // Estrutura temporária baseada nas tabelas do banco de dados
 const DB_KEYS = {
   usuarios: 'senaiUsuarios',
@@ -661,21 +662,112 @@ function updateSelectorStatus(id, blockKey = currentBlock) {
   setSelectorStatusColor(sel, s ? statusFor(s) : '');
 }
 
+
 function showSelectedFromSelector(id, blockKey = currentBlock) {
   const s = parkingBlocks[blockKey].spots.find(x => x[0] === id);
+
   if (!s) {
     selected = null;
     return;
   }
+
   selected = { s, blockKey };
+
   const box = document.getElementById('spotDetail');
   if (!box) return;
+
   const st = statusFor(s);
   const today = new Date().toISOString().slice(0, 10);
-  const isBookingPage = location.pathname.endsWith('/agendar.html') || location.pathname.endsWith('agendar.html');
-  const action = isBookingPage ? (st === 'green' ? `<label class="field-label">Data<br><input id="reserveDate" type="date" value="${today}" min="${today}"></label><label class="field-label">Horário<br><input id="reserveTime" type="time" value="18:00"></label><button class="btn btn-primary full" onclick="reserveSelected()">Confirmar agendamento</button>` : `<button class="btn btn-light" disabled>${st === 'yellow' ? 'Vaga já agendada' : 'Vaga ocupada'}</button>`) : `<div class="view-only-note">Modo de visualização: esta página não permite agendamentos.<br><a href="agendar.html">Ir para Novo agendamento</a> para reservar uma vaga.</div>`;
-  box.innerHTML = `<div class="detail-top"><div class="eyebrow">Vaga selecionada</div><div class="detail-id">${s[0]}</div><div class="detail-status"><span class="badge ${st}">${st === 'green' ? 'Livre' : st === 'red' ? 'Ocupada' : 'Agendada'}</span></div><div class="detail-meta"><div class="meta-row"><span>Local</span><strong>${parkingBlocks[blockKey].name}</strong></div><div class="meta-row"><span>Identificação</span><strong>${s[0]}</strong></div><div class="meta-row"><span>Disponibilidade</span><strong>${st === 'green' ? 'Pode ser reservada' : st === 'yellow' ? 'Reserva ativa' : 'Indisponível'}</strong></div></div></div><div class="detail-action">${action}</div>`;
+
+  const isBookingPage =
+    location.pathname.endsWith('/agendar.html') ||
+    location.pathname.endsWith('agendar.html');
+
+  let action;
+
+  if (isBookingPage && st === 'green') {
+    action = `
+      <label class="field-label">
+        Data<br>
+        <input id="reserveDate" type="date"
+          value="${today}" min="${today}" required>
+      </label>
+
+      <label class="field-label">
+  Veículo<br>
+  <select id="vehicleSelector" class="spot-selector" required>
+    <option value="">Selecione um veículo...</option>
+  </select>
+</label>
+
+      <label class="field-label">
+        Horário<br>
+        <input id="reserveTime" type="time"
+          value="18:00" required>
+      </label>
+
+      <button class="btn btn-primary full"
+        onclick="reserveSelected()">
+        Confirmar agendamento
+      </button>
+    `;
+  } else if (isBookingPage) {
+    action = `
+      <button class="btn btn-light" disabled>
+        ${st === 'yellow' ? 'Vaga já agendada' : 'Vaga ocupada'}
+      </button>
+    `;
+  } else {
+    action = `
+      <div class="view-only-note">
+        Modo de visualização: esta página não permite agendamentos.<br>
+        <a href="agendar.html">Ir para Novo agendamento</a>
+        para reservar uma vaga.
+      </div>
+    `;
+  }
+
+  box.innerHTML = `
+    <div class="detail-top">
+      <div class="eyebrow">Vaga selecionada</div>
+      <div class="detail-id">${s[0]}</div>
+
+      <div class="detail-status">
+        <span class="badge ${st}">
+          ${st === 'green' ? 'Livre' :
+            st === 'red' ? 'Ocupada' : 'Agendada'}
+        </span>
+      </div>
+
+      <div class="detail-meta">
+        <div class="meta-row">
+          <span>Local</span>
+          <strong>${parkingBlocks[blockKey].name}</strong>
+        </div>
+
+        <div class="meta-row">
+          <span>Identificação</span>
+          <strong>${s[0]}</strong>
+        </div>
+
+        <div class="meta-row">
+          <span>Disponibilidade</span>
+          <strong>
+            ${st === 'green' ? 'Pode ser reservada' :
+              st === 'yellow' ? 'Reserva ativa' : 'Indisponível'}
+          </strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-action">${action}</div>
+  `;
+
+  if (isBookingPage && st === 'green') {
+    carregarVeiculosAgendamento();
+  }
 }
+
 
 function onSpotSelectorChange(value) {
   updateSelectorStatus(value, currentBlock);
