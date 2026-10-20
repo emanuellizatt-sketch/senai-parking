@@ -124,18 +124,25 @@
             </div>
 
 
-            <div class="field">
-              <label for="cor">
-                Cor
-              </label>
+           
+<div class="field">
+  <label for="cor">Cor</label>
+  <select id="cor" name="cor" required>
+    <option value="">Selecione uma cor...</option>
+    <option value="Branco">Branco</option>
+    <option value="Preto">Preto</option>
+    <option value="Prata">Prata</option>
+    <option value="Cinza">Cinza</option>
+    <option value="Vermelho">Vermelho</option>
+    <option value="Azul">Azul</option>
+    <option value="Verde">Verde</option>
+    <option value="Amarelo">Amarelo</option>
+    <option value="Marrom">Marrom</option>
+    <option value="Bege">Bege</option>
+    <option value="Outra">Outra</option>
+  </select>
+</div>
 
-              <input
-                type="text"
-                id="cor"
-                placeholder="Ex.: Prata"
-                required
-              >
-            </div>
 
 
             <div class="field">
@@ -445,97 +452,95 @@
       // MOSTRAR MEU VEÍCULO
       // ===============================
 
-      function mostrarMeuVeiculoPagina() {
+      
+function mostrarMeuVeiculoPagina() {
+  const usuarioId = Number(localStorage.getItem('senaiUserId'));
+  const { marcas, modelos, veiculos } = carregarDados();
+  const container = document.getElementById('meuVeiculo');
 
-        const usuarioId =
-          Number(
-            localStorage.getItem('senaiUserId')
-          );
+  const meusVeiculos = veiculos.filter(
+    veiculo => Number(veiculo.id_usuario) === usuarioId
+  );
 
+  if (!usuarioId || meusVeiculos.length === 0) {
+    container.innerHTML = `
+      <div class="empty-message">
+        Nenhum veículo cadastrado para este usuário.
+      </div>
+    `;
+    return;
+  }
 
-        const { marcas, modelos, veiculos } =
-          carregarDados();
+  container.innerHTML = meusVeiculos.map(veiculo => {
+    const modelo = modelos.find(
+      m => Number(m.id_modelo) === Number(veiculo.id_modelo)
+    );
 
+    const marca = modelo
+      ? marcas.find(m => Number(m.id_marca) === Number(modelo.id_marca))
+      : null;
 
-        const meuVeiculo =
-          veiculos.find(
-            veiculo =>
-              Number(veiculo.id_usuario) ===
-              usuarioId
-          );
+    return `
+      <div class="vehicle-item-card">
+        <div class="info-row">
+          <span>Placa</span>
+          <strong>${veiculo.id_placa || 'Não cadastrada'}</strong>
+        </div>
 
+        <div class="info-row">
+          <span>Cor</span>
+          <strong>${veiculo.cor || 'Não cadastrada'}</strong>
+        </div>
 
-        const container =
-          document.getElementById('meuVeiculo');
+        <div class="info-row">
+          <span>Modelo</span>
+          <strong>${modelo ? modelo.nome_modelo : 'Não cadastrado'}</strong>
+        </div>
 
+        <div class="info-row">
+          <span>Marca</span>
+          <strong>${marca ? marca.nome_marca : 'Não cadastrada'}</strong>
+        </div>
 
-        if (!meuVeiculo) {
+        <button
+          type="button"
+          class="btn btn-danger"
+          onclick="cancelarVeiculo('${veiculo.id_placa}')"
+        >
+          Cancelar veículo
+        </button>
+      </div>
+    `;
+  }).join('');
+}
 
-          container.innerHTML = `
-            <div class="empty-message">
-              Nenhum veículo cadastrado para este usuário.
-            </div>
-          `;
+window.cancelarVeiculo = function(placa) {
+  const usuarioId = Number(localStorage.getItem('senaiUserId'));
 
-          return;
-        }
+  if (!confirm(`Deseja cancelar o vínculo do veículo ${placa}?`)) {
+    return;
+  }
 
+  const veiculos = getDB('veiculos');
 
-        const modelo =
-          modelos.find(
-            m =>
-              Number(m.id_modelo) ===
-              Number(meuVeiculo.id_modelo)
-          );
+  const veiculo = veiculos.find(
+    v =>
+      String(v.id_placa).toUpperCase() === String(placa).toUpperCase() &&
+      Number(v.id_usuario) === usuarioId
+  );
 
+  if (!veiculo) {
+    toast('Veículo não encontrado para este usuário.');
+    return;
+  }
 
-        const marca =
-          modelo
-            ? marcas.find(
-                m =>
-                  Number(m.id_marca) ===
-                  Number(modelo.id_marca)
-              )
-            : null;
+  // Remove o vínculo do usuário sem apagar o registro do veículo.
+  veiculo.id_usuario = null;
+  saveDB('veiculos', veiculos);
 
-
-        container.innerHTML = `
-
-          <div class="info-row">
-            <span>Placa</span>
-            <strong>
-              ${meuVeiculo.id_placa || 'Não cadastrada'}
-            </strong>
-          </div>
-
-          <div class="info-row">
-            <span>Cor</span>
-            <strong>
-              ${meuVeiculo.cor || 'Não cadastrada'}
-            </strong>
-          </div>
-
-          <div class="info-row">
-            <span>Modelo</span>
-            <strong>
-              ${modelo
-                ? modelo.nome_modelo
-                : 'Não cadastrado'}
-            </strong>
-          </div>
-
-          <div class="info-row">
-            <span>Marca</span>
-            <strong>
-              ${marca
-                ? marca.nome_marca
-                : 'Não cadastrada'}
-            </strong>
-          </div>
-
-        `;
-      }
-
+  mostrarMeuVeiculoPagina();
+  toast('Veículo desvinculado com sucesso.');
+};
 
       // ===============================
       // CADASTRAR VEÍCULO
