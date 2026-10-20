@@ -523,11 +523,36 @@ function buscarVeiculo(placa) {
 
 
 // Cadastra um veículo
+
+ // Cadastra um veículo
 function cadastrarVeiculo(placa, cor, idModelo, idUsuario) {
   const veiculos = getDB('veiculos');
 
+  // Padroniza a placa para evitar diferenças entre letras minúsculas
+  // e maiúsculas ou espaços.
+  const placaNormalizada = String(placa || '')
+    .trim()
+    .toUpperCase()
+    .replace(/[\s-]/g, '');
+
+  const corNormalizada = String(cor || '').trim();
+  const modeloId = Number(idModelo);
+
+  // Verifica os campos obrigatórios.
+  if (!placaNormalizada || !corNormalizada || !idModelo) {
+    return {
+      sucesso: false,
+      mensagem: 'Preencha a placa, a cor e o modelo do veículo.'
+    };
+  }
+
+  // Verifica se a placa já existe.
   const placaExistente = veiculos.find(
-    veiculo => veiculo.id_placa === placa
+    veiculo =>
+      String(veiculo.id_placa || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[\s-]/g, '') === placaNormalizada
   );
 
   if (placaExistente) {
@@ -536,11 +561,44 @@ function cadastrarVeiculo(placa, cor, idModelo, idUsuario) {
       mensagem: 'Essa placa já está cadastrada.'
     };
   }
-  function mostrarMeuVeiculo() {
-    
+
+  // Verifica se o modelo selecionado existe.
+  const modelo = buscarModelo(modeloId);
+
+  if (!modelo) {
+    return {
+      sucesso: false,
+      mensagem: 'Modelo não encontrado.'
+    };
+  }
+
+  // Mantém o formato usado atualmente no projeto.
+  const novoVeiculo = {
+    id_placa: placaNormalizada,
+    cor: corNormalizada,
+    id_usuario: idUsuario,
+    id_modelo: modeloId
+  };
+
+  veiculos.push(novoVeiculo);
+  saveDB('veiculos', veiculos);
+
+  return {
+    sucesso: true,
+    mensagem: 'Veículo cadastrado com sucesso!',
+    veiculo: novoVeiculo
+  };
+}
+
+
+// Mostra os dados do veículo do usuário
+function mostrarMeuVeiculo() {
   const usuarioId = Number(localStorage.getItem('senaiUserId'));
 
+  if (!usuarioId) return;
+
   const veiculos = getDB('veiculos');
+
   const veiculo = veiculos.find(
     v => Number(v.id_usuario) === usuarioId
   );
@@ -550,43 +608,30 @@ function cadastrarVeiculo(placa, cor, idModelo, idUsuario) {
   const modelo = buscarModelo(veiculo.id_modelo);
   const marca = modelo ? buscarMarca(modelo.id_marca) : null;
 
-  document.getElementById('veiculoPlaca').textContent =
-    veiculo.id_placa || 'Não cadastrada';
+  const placaElemento = document.getElementById('veiculoPlaca');
+  const corElemento = document.getElementById('veiculoCor');
+  const modeloElemento = document.getElementById('veiculoModelo');
+  const marcaElemento = document.getElementById('veiculoMarca');
 
-  document.getElementById('veiculoCor').textContent =
-    veiculo.cor || 'Não cadastrada';
-
-  document.getElementById('veiculoModelo').textContent =
-    modelo ? modelo.nome_modelo : 'Não cadastrado';
-
-  document.getElementById('veiculoMarca').textContent =
-    marca ? marca.nome_marca : 'Não cadastrada';
-}
-
-  const modelo = buscarModelo(idModelo);
-
-  if (!modelo) {
-    return {
-      sucesso: false,
-      mensagem: 'Modelo não encontrado.'
-    };
+  if (placaElemento) {
+    placaElemento.textContent = veiculo.id_placa || 'Não cadastrada';
   }
 
-  const novoVeiculo = {
-    id_placa: placa,
-    cor: cor,
-    id_usuario: idUsuario,
-    id_modelo: idModelo
-  };
+  if (corElemento) {
+    corElemento.textContent = veiculo.cor || 'Não cadastrada';
+  }
 
-  veiculos.push(novoVeiculo);
+  if (modeloElemento) {
+    modeloElemento.textContent = modelo
+      ? modelo.nome_modelo
+      : 'Não cadastrado';
+  }
 
-  saveDB('veiculos', veiculos);
-
-  return {
-    sucesso: true,
-    veiculo: novoVeiculo
-  };
+  if (marcaElemento) {
+    marcaElemento.textContent = marca
+      ? marca.nome_marca
+      : 'Não cadastrada';
+  }
 }
 
 function allSpots() {
@@ -677,6 +722,56 @@ function showSelectedFromSelector(id, blockKey = currentBlock) {
   box.innerHTML = `<div class="detail-top"><div class="eyebrow">Vaga selecionada</div><div class="detail-id">${s[0]}</div><div class="detail-status"><span class="badge ${st}">${st === 'green' ? 'Livre' : st === 'red' ? 'Ocupada' : 'Agendada'}</span></div><div class="detail-meta"><div class="meta-row"><span>Local</span><strong>${parkingBlocks[blockKey].name}</strong></div><div class="meta-row"><span>Identificação</span><strong>${s[0]}</strong></div><div class="meta-row"><span>Disponibilidade</span><strong>${st === 'green' ? 'Pode ser reservada' : st === 'yellow' ? 'Reserva ativa' : 'Indisponível'}</strong></div></div></div><div class="detail-action">${action}</div>`;
 }
 
+<<<<<<< Updated upstream
+=======
+function carregarVeiculosAgendamento() {
+  const seletor = document.getElementById('vehicleSelector');
+  if (!seletor) return;
+
+  const usuarioId = Number(localStorage.getItem('senaiUserId'));
+  const veiculos = getDB('veiculos');
+  const modelos = getDB('modelos');
+  const marcas = getDB('marcas');
+
+  const meusVeiculos = veiculos.filter(
+    veiculo => usuarioId &&
+      Number(veiculo.id_usuario) === usuarioId
+  );
+
+  if (!meusVeiculos.length) {
+    seletor.innerHTML =
+      '<option value="">Nenhum veículo cadastrado</option>';
+    return;
+  }
+
+  seletor.innerHTML =
+    '<option value="">Selecione um veículo...</option>';
+
+  meusVeiculos.forEach(veiculo => {
+    const modelo = modelos.find(
+      m => Number(m.id_modelo) === Number(veiculo.id_modelo)
+    );
+
+    const marca = modelo && marcas.find(
+      m => Number(m.id_marca) === Number(modelo.id_marca)
+    );
+
+    const opcao = document.createElement('option');
+    opcao.value = veiculo.id_placa;
+
+    const descricao = [
+      veiculo.id_placa,
+      marca?.nome_marca,
+      modelo?.nome_modelo
+    ].filter(Boolean).join(' — ');
+
+    opcao.textContent = descricao;
+    seletor.appendChild(opcao);
+  });
+}
+
+
+>>>>>>> Stashed changes
 function onSpotSelectorChange(value) {
   updateSelectorStatus(value, currentBlock);
   if (!value) {
@@ -952,15 +1047,18 @@ function pageInit() {
     btn.classList.remove('active');
   });
 
-  const hButton = document.querySelector('[data-block="H"]');
+  const map = document.getElementById('map');
 
-  if (hButton) {
-    hButton.classList.add('active');
-  }
+if (map) {
+  document.querySelectorAll('[data-block]').forEach(btn => {
+    btn.classList.toggle(
+      'active',
+      btn.dataset.block === currentBlock
+    );
+  });
 
-  renderMap('H');
-}
-
+  renderMap(currentBlock);
+}}
   const reservations = getReservations();
   document.querySelectorAll('[data-reservas]').forEach(el => el.textContent = reservations.filter(r => r.active).length);
   const stats = { green: 0, red: 0, yellow: 0 };
@@ -988,3 +1086,269 @@ function pageInit() {
 }
 
 document.addEventListener('DOMContentLoaded', pageInit);
+
+function configurarPaginaVeiculos() {
+  const form = document.getElementById('vehicleForm');
+
+  // Se não estiver na página de veículos, não faz nada.
+  if (!form) return;
+
+  const selectMarca = document.getElementById('marca');
+  const selectModelo = document.getElementById('modelo');
+  const listaMarcas = document.getElementById('listaMarcas');
+  const listaModelos = document.getElementById('listaModelos');
+  const meuVeiculo = document.getElementById('meuVeiculo');
+
+  // Mostra as marcas cadastradas.
+  function mostrarMarcasPagina() {
+    const marcas = getDB('marcas');
+
+    selectMarca.innerHTML =
+      '<option value="">Selecione uma marca...</option>' +
+      marcas.map(marca => `
+        <option value="${marca.id_marca}">
+          ${marca.nome_marca}
+        </option>
+      `).join('');
+
+    if (listaMarcas) {
+      listaMarcas.innerHTML = marcas.length
+        ? marcas.map(marca => `
+            <div class="data-item">
+              <strong>${marca.nome_marca}</strong>
+              <small>ID da marca: ${marca.id_marca}</small>
+            </div>
+          `).join('')
+        : '<div class="empty-message">Nenhuma marca cadastrada.</div>';
+    }
+  }
+
+  // Mostra os modelos cadastrados.
+  function mostrarModelosPagina() {
+    const marcas = getDB('marcas');
+    const modelos = getDB('modelos');
+
+    if (listaModelos) {
+      listaModelos.innerHTML = modelos.length
+        ? modelos.map(modelo => {
+            const marca = marcas.find(
+              m => Number(m.id_marca) === Number(modelo.id_marca)
+            );
+
+            return `
+              <div class="data-item">
+                <strong>${modelo.nome_modelo}</strong>
+                <small>Marca: ${marca ? marca.nome_marca : 'Não encontrada'}</small>
+              </div>
+            `;
+          }).join('')
+        : '<div class="empty-message">Nenhum modelo cadastrado.</div>';
+    }
+  }
+
+  // Filtra os modelos de acordo com a marca.
+  selectMarca.addEventListener('change', function () {
+    const idMarca = this.value;
+
+    selectModelo.disabled = !idMarca;
+
+    if (!idMarca) {
+      selectModelo.innerHTML =
+        '<option value="">Primeiro selecione uma marca...</option>';
+      return;
+    }
+
+    const modelos = getDB('modelos').filter(
+      modelo => Number(modelo.id_marca) === Number(idMarca)
+    );
+
+    selectModelo.innerHTML =
+      '<option value="">Selecione um modelo...</option>' +
+      modelos.map(modelo => `
+        <option value="${modelo.id_modelo}">
+          ${modelo.nome_modelo}
+        </option>
+      `).join('');
+  });
+
+  // Mostra os veículos vinculados ao usuário conectado.
+  function mostrarVeiculosDoUsuario() {
+    if (!meuVeiculo) return;
+
+    const usuarioId = Number(localStorage.getItem('senaiUserId'));
+    const marcas = getDB('marcas');
+    const modelos = getDB('modelos');
+    const veiculos = getDB('veiculos');
+
+    const meusVeiculos = veiculos.filter(
+      veiculo => usuarioId &&
+        Number(veiculo.id_usuario) === usuarioId
+    );
+
+    if (!meusVeiculos.length) {
+      meuVeiculo.innerHTML = `
+        <div class="empty-message">
+          Nenhum veículo cadastrado para este usuário.
+        </div>
+      `;
+      return;
+    }
+
+    meuVeiculo.innerHTML = meusVeiculos.map(veiculo => {
+      const modelo = modelos.find(
+        m => Number(m.id_modelo) === Number(veiculo.id_modelo)
+      );
+
+      const marca = modelo && marcas.find(
+        m => Number(m.id_marca) === Number(modelo.id_marca)
+      );
+
+      return `
+        <div class="vehicle-item-card">
+          <div class="info-row">
+            <span>Placa</span>
+            <strong>${veiculo.id_placa || 'Não cadastrada'}</strong>
+          </div>
+          <div class="info-row">
+            <span>Cor</span>
+            <strong>${veiculo.cor || 'Não cadastrada'}</strong>
+          </div>
+          <div class="info-row">
+            <span>Modelo</span>
+            <strong>${modelo ? modelo.nome_modelo : 'Não cadastrado'}</strong>
+          </div>
+          <div class="info-row">
+            <span>Marca</span>
+            <strong>${marca ? marca.nome_marca : 'Não cadastrada'}</strong>
+          </div>
+          <button type="button" class="btn btn-danger"
+            data-cancelar-veiculo="${veiculo.id_placa}">
+            Cancelar veículo
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Cancela o vínculo do veículo com o usuário.
+  if (meuVeiculo) {
+    meuVeiculo.addEventListener('click', function (event) {
+      const botao = event.target.closest('[data-cancelar-veiculo]');
+      if (!botao) return;
+
+      const placa = botao.dataset.cancelarVeiculo;
+      const usuarioId = Number(localStorage.getItem('senaiUserId'));
+
+      if (!confirm(`Deseja cancelar o vínculo do veículo ${placa}?`)) {
+        return;
+      }
+
+      const veiculos = getDB('veiculos');
+      const veiculo = veiculos.find(v =>
+        String(v.id_placa).toUpperCase() === placa.toUpperCase() &&
+        Number(v.id_usuario) === usuarioId
+      );
+
+      if (!veiculo) {
+        toast('Veículo não encontrado para este usuário.');
+        return;
+      }
+
+      veiculo.id_usuario = null;
+      saveDB('veiculos', veiculos);
+      mostrarVeiculosDoUsuario();
+      toast('Veículo desvinculado com sucesso.');
+    });
+  }
+ const campoPlaca = document.getElementById('placa');
+  const botaoCadastrar = form.querySelector(
+    'button[type="submit"], input[type="submit"]'
+  );
+
+  campoPlaca.addEventListener('input', function () {
+    if (botaoCadastrar) {
+      botaoCadastrar.disabled = false;
+    }
+  });
+
+  // Cadastra o veículo.
+  form.addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const placa = document.getElementById('placa').value
+      .trim().toUpperCase();
+    const cor = document.getElementById('cor').value.trim();
+    const idMarca = selectMarca.value;
+    const idModelo = selectModelo.value;
+    const usuarioId = Number(localStorage.getItem('senaiUserId'));
+
+    if (!usuarioId) {
+      toast('Faça login antes de cadastrar um veículo.');
+      return;
+    }
+
+    if (!placa || !cor || !idMarca || !idModelo) {
+      toast('Preencha todos os campos.');
+      return;
+    }
+
+    const modelo = buscarModelo(idModelo);
+
+    if (!modelo || Number(modelo.id_marca) !== Number(idMarca)) {
+('Selecione um modelo válido para a marca escolhida.');
+      return;
+    }
+
+    const normalizarPlaca = valor =>
+      String(valor || '').trim().toUpperCase().replace(/[\s-]/g, '');
+
+    const placaExistente = getDB('veiculos').some(
+  veiculo =>
+    normalizarPlaca(veiculo.id_placa) === normalizarPlaca(placa)
+);
+
+const botaoCadastrar = form.querySelector(
+  'button[type="submit"], input[type="submit"]'
+);
+
+if (placaExistente) {
+  toast('Essa placa já está cadastrada.');
+
+  if (botaoCadastrar) {
+    botaoCadastrar.disabled = true;
+  }
+
+  return;
+}
+
+if (botaoCadastrar) {
+  botaoCadastrar.disabled = false;
+}
+
+    const resultado = cadastrarVeiculo(
+      placa, cor, Number(idModelo), usuarioId
+    );
+
+    if (!resultado || !resultado.sucesso) {
+      toast(resultado?.mensagem || 'Não foi possível cadastrar o veículo.');
+      return;
+    }
+
+    toast('Veículo cadastrado com sucesso!');
+    form.reset();
+
+    selectModelo.disabled = true;
+    selectModelo.innerHTML =
+      '<option value="">Primeiro selecione uma marca...</option>';
+
+    mostrarVeiculosDoUsuario();
+    mostrarMarcasPagina();
+    mostrarModelosPagina();
+  });
+
+  mostrarMarcasPagina();
+  mostrarModelosPagina();
+  mostrarVeiculosDoUsuario();
+}
+
+document.addEventListener('DOMContentLoaded', configurarPaginaVeiculos);
