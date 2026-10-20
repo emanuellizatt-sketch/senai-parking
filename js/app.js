@@ -524,6 +524,40 @@ function buscarVeiculo(placa) {
 
 
 // Cadastra um veículo
+function mostrarMeuVeiculo() {
+  const usuarioId = Number(localStorage.getItem('senaiUserId'));
+
+  const placas = ['veiculoPlaca', 'veiculoCor', 'veiculoModelo', 'veiculoMarca'];
+  const refs = placas.map(id => document.getElementById(id)).filter(Boolean);
+
+  if (!refs.length) return;
+
+  const veiculos = getDB('veiculos');
+  const veiculo = veiculos.find(v => Number(v.id_usuario) === usuarioId);
+
+  if (!veiculo) {
+    refs.forEach(el => {
+      el.textContent = el.id === 'veiculoPlaca' ? 'Não cadastrada' :
+        el.id === 'veiculoCor' ? 'Não cadastrada' :
+        el.id === 'veiculoModelo' ? 'Não cadastrado' : 'Não cadastrada';
+    });
+    return;
+  }
+
+  const modelo = buscarModelo(veiculo.id_modelo);
+  const marca = modelo ? buscarMarca(modelo.id_marca) : null;
+
+  const veiculoPlaca = document.getElementById('veiculoPlaca');
+  const veiculoCor = document.getElementById('veiculoCor');
+  const veiculoModelo = document.getElementById('veiculoModelo');
+  const veiculoMarca = document.getElementById('veiculoMarca');
+
+  if (veiculoPlaca) veiculoPlaca.textContent = veiculo.id_placa || 'Não cadastrada';
+  if (veiculoCor) veiculoCor.textContent = veiculo.cor || 'Não cadastrada';
+  if (veiculoModelo) veiculoModelo.textContent = modelo ? modelo.nome_modelo : 'Não cadastrado';
+  if (veiculoMarca) veiculoMarca.textContent = marca ? marca.nome_marca : 'Não cadastrada';
+}
+
 function cadastrarVeiculo(placa, cor, idModelo, idUsuario) {
   const veiculos = getDB('veiculos');
 
@@ -537,32 +571,6 @@ function cadastrarVeiculo(placa, cor, idModelo, idUsuario) {
       mensagem: 'Essa placa já está cadastrada.'
     };
   }
-  function mostrarMeuVeiculo() {
-    
-  const usuarioId = Number(localStorage.getItem('senaiUserId'));
-
-  const veiculos = getDB('veiculos');
-  const veiculo = veiculos.find(
-    v => Number(v.id_usuario) === usuarioId
-  );
-
-  if (!veiculo) return;
-
-  const modelo = buscarModelo(veiculo.id_modelo);
-  const marca = modelo ? buscarMarca(modelo.id_marca) : null;
-
-  document.getElementById('veiculoPlaca').textContent =
-    veiculo.id_placa || 'Não cadastrada';
-
-  document.getElementById('veiculoCor').textContent =
-    veiculo.cor || 'Não cadastrada';
-
-  document.getElementById('veiculoModelo').textContent =
-    modelo ? modelo.nome_modelo : 'Não cadastrado';
-
-  document.getElementById('veiculoMarca').textContent =
-    marca ? marca.nome_marca : 'Não cadastrada';
-}
 
   const modelo = buscarModelo(idModelo);
 
@@ -662,6 +670,28 @@ function updateSelectorStatus(id, blockKey = currentBlock) {
   setSelectorStatusColor(sel, s ? statusFor(s) : '');
 }
 
+
+function carregarVeiculosAgendamento() {
+  const select = document.getElementById('vehicleSelector');
+  if (!select) return;
+
+  const usuarioId = Number(localStorage.getItem('senaiUserId'));
+  const veiculos = getDB('veiculos').filter(v => Number(v.id_usuario) === usuarioId);
+
+  if (!veiculos.length) {
+    select.disabled = true;
+    select.innerHTML = '<option value="">Cadastre um veículo primeiro</option>';
+    return;
+  }
+
+  select.disabled = false;
+  select.innerHTML = '<option value="">Selecione um veículo...</option>' +
+    veiculos.map(veiculo => {
+      const modelo = buscarModelo(veiculo.id_modelo);
+      const label = modelo ? `${modelo.nome_modelo} • ${veiculo.id_placa}` : veiculo.id_placa;
+      return `<option value="${veiculo.id_placa}">${label}</option>`;
+    }).join('');
+}
 
 function showSelectedFromSelector(id, blockKey = currentBlock) {
   const s = parkingBlocks[blockKey].spots.find(x => x[0] === id);
@@ -942,9 +972,6 @@ sancoes.push({
 
 saveDB('sancoes', sancoes);
 saveSanctions(ss);
-
-saveDB('sancoes', sancoes);
-  saveSanctions(ss);
   toast(`${r.id}: não comparecimento registrado. Sanção: ${penalty}.`);
   setTimeout(() => location.reload(), 450);
 }
@@ -1036,7 +1063,7 @@ function pageInit() {
   setupLogin();
   setupBlockSwitch();
   inicializarDadosVeiculos();
-  //mostrarMeuVeiculo();
+  mostrarMeuVeiculo();
   const map = document.getElementById('map');
  
   if (map) {
