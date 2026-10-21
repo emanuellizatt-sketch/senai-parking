@@ -525,37 +525,181 @@ function buscarVeiculo(placa) {
 
 // Cadastra um veículo
 function mostrarMeuVeiculo() {
+  const container = document.getElementById('meuVeiculo');
+  if (!container) return;
+
   const usuarioId = Number(localStorage.getItem('senaiUserId'));
+  const veiculos = getDB('veiculos').filter(v => Number(v.id_usuario) === usuarioId);
 
-  const placas = ['veiculoPlaca', 'veiculoCor', 'veiculoModelo', 'veiculoMarca'];
-  const refs = placas.map(id => document.getElementById(id)).filter(Boolean);
+  if (!veiculos.length) {
+    container.innerHTML = '<div class="empty-message">Nenhum veículo cadastrado.</div>';
+    return;
+  }
 
-  if (!refs.length) return;
+  container.innerHTML = veiculos.map(veiculo => {
+    const modelo = buscarModelo(veiculo.id_modelo);
+    const marca = modelo ? buscarMarca(modelo.id_marca) : null;
 
+    return `
+      <div class="vehicle-mini-card" style="border:1px solid var(--line); border-radius:12px; padding:14px; background:var(--card); margin-bottom:12px; display:flex; flex-direction:column; gap:8px; box-shadow:0 8px 18px rgba(15,23,42,0.04);">
+        <div class="info-row" style="display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); padding-bottom:8px;">
+          <strong>Placa</strong>
+          <span>${veiculo.id_placa || 'Não cadastrada'}</span>
+        </div>
+        <div class="info-row" style="display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); padding-bottom:8px;">
+          <strong>Cor</strong>
+          <span>${veiculo.cor || 'Não cadastrada'}</span>
+        </div>
+        <div class="info-row" style="display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); padding-bottom:8px;">
+          <strong>Modelo</strong>
+          <span>${modelo ? modelo.nome_modelo : 'Não cadastrado'}</span>
+        </div>
+        <div class="info-row" style="display:flex; justify-content:space-between; gap:12px; margin-bottom:8px;">
+          <strong>Marca</strong>
+          <span>${marca ? marca.nome_marca : 'Não cadastrada'}</span>
+        </div>
+        <button
+          type="button"
+          class="btn btn-light"
+          style="width:100%;"
+          onclick="removerVeiculoPorPlaca('${veiculo.id_placa}')"
+        >
+          Cancelar veículo
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+function removerVeiculoPorPlaca(placa) {
+  const usuarioId = Number(localStorage.getItem('senaiUserId'));
+  const veiculos = getDB('veiculos');
+  const index = veiculos.findIndex(
+    v => Number(v.id_usuario) === usuarioId && v.id_placa === placa
+  );
+
+  if (index === -1) {
+    toast('Veículo não encontrado para este usuário.');
+    return;
+  }
+
+  veiculos.splice(index, 1);
+  saveDB('veiculos', veiculos);
+
+  mostrarMeuVeiculo();
+  toast('Veículo removido com sucesso.');
+}
+
+function removerVeiculoAtual() {
+  const usuarioId = Number(localStorage.getItem('senaiUserId'));
   const veiculos = getDB('veiculos');
   const veiculo = veiculos.find(v => Number(v.id_usuario) === usuarioId);
 
   if (!veiculo) {
-    refs.forEach(el => {
-      el.textContent = el.id === 'veiculoPlaca' ? 'Não cadastrada' :
-        el.id === 'veiculoCor' ? 'Não cadastrada' :
-        el.id === 'veiculoModelo' ? 'Não cadastrado' : 'Não cadastrada';
-    });
+    toast('Nenhum veículo vinculado a este usuário.');
     return;
   }
 
-  const modelo = buscarModelo(veiculo.id_modelo);
-  const marca = modelo ? buscarMarca(modelo.id_marca) : null;
+  removerVeiculoPorPlaca(veiculo.id_placa);
+}
 
-  const veiculoPlaca = document.getElementById('veiculoPlaca');
-  const veiculoCor = document.getElementById('veiculoCor');
-  const veiculoModelo = document.getElementById('veiculoModelo');
-  const veiculoMarca = document.getElementById('veiculoMarca');
+function configurarFormularioVeiculos() {
+  const marcaSelect = document.getElementById('marca');
+  const modeloSelect = document.getElementById('modelo');
+  const form = document.getElementById('vehicleForm');
+  const listaMarcas = document.getElementById('listaMarcas');
+  const listaModelos = document.getElementById('listaModelos');
 
-  if (veiculoPlaca) veiculoPlaca.textContent = veiculo.id_placa || 'Não cadastrada';
-  if (veiculoCor) veiculoCor.textContent = veiculo.cor || 'Não cadastrada';
-  if (veiculoModelo) veiculoModelo.textContent = modelo ? modelo.nome_modelo : 'Não cadastrado';
-  if (veiculoMarca) veiculoMarca.textContent = marca ? marca.nome_marca : 'Não cadastrada';
+  const renderListaMarcas = () => {
+    const marcas = getDB('marcas');
+
+    if (listaMarcas) {
+      listaMarcas.innerHTML = marcas.length
+        ? marcas.map(marca => `
+            <div class="data-item">
+              <span>${marca.nome_marca}</span>
+            </div>
+          `).join('')
+        : '<div class="empty-message">Nenhuma marca cadastrada.</div>';
+    }
+
+    if (marcaSelect) {
+      marcaSelect.innerHTML = '<option value="">Selecione uma marca...</option>' +
+        marcas.map(marca => `<option value="${marca.id_marca}">${marca.nome_marca}</option>`).join('');
+    }
+  };
+
+  const renderListaModelos = () => {
+    const modelos = getDB('modelos');
+
+    if (listaModelos) {
+      listaModelos.innerHTML = modelos.length
+        ? modelos.map(modelo => `
+            <div class="data-item">
+              <span>${modelo.nome_modelo}</span>
+            </div>
+          `).join('')
+        : '<div class="empty-message">Nenhum modelo cadastrado.</div>';
+    }
+  };
+
+  const atualizarModelos = (idMarca) => {
+    if (!modeloSelect) return;
+
+    const modelos = getDB('modelos').filter(
+      modelo => Number(modelo.id_marca) === Number(idMarca)
+    );
+
+    if (!idMarca) {
+      modeloSelect.disabled = true;
+      modeloSelect.innerHTML = '<option value="">Primeiro selecione uma marca...</option>';
+      return;
+    }
+
+    modeloSelect.disabled = false;
+    modeloSelect.innerHTML = '<option value="">Selecione um modelo...</option>' +
+      modelos.map(modelo => `<option value="${modelo.id_modelo}">${modelo.nome_modelo}</option>`).join('');
+  };
+
+  if (marcaSelect) {
+    marcaSelect.addEventListener('change', e => atualizarModelos(e.target.value));
+  }
+
+  if (form) {
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+
+      const placa = document.getElementById('placa')?.value.trim().toUpperCase();
+      const cor = document.getElementById('cor')?.value;
+      const idMarca = document.getElementById('marca')?.value;
+      const idModelo = document.getElementById('modelo')?.value;
+
+      if (!placa || !cor || !idMarca || !idModelo) {
+        toast('Preencha placa, cor, marca e modelo antes de cadastrar.');
+        return;
+      }
+
+      const usuarioId = Number(localStorage.getItem('senaiUserId')) || 1;
+      const resultado = cadastrarVeiculo(placa, cor, Number(idModelo), usuarioId);
+
+      if (!resultado.sucesso) {
+        toast(resultado.mensagem);
+        return;
+      }
+
+      form.reset();
+      if (marcaSelect) marcaSelect.value = '';
+      atualizarModelos('');
+      renderListaMarcas();
+      renderListaModelos();
+      mostrarMeuVeiculo();
+      toast('Veículo cadastrado com sucesso!');
+    });
+  }
+
+  renderListaMarcas();
+  renderListaModelos();
+  atualizarModelos(marcaSelect?.value || '');
 }
 
 function cadastrarVeiculo(placa, cor, idModelo, idUsuario) {
@@ -1063,6 +1207,7 @@ function pageInit() {
   setupLogin();
   setupBlockSwitch();
   inicializarDadosVeiculos();
+  configurarFormularioVeiculos();
   mostrarMeuVeiculo();
   const map = document.getElementById('map');
  
@@ -1077,7 +1222,18 @@ function pageInit() {
     hButton.classList.add('active');
   }
 
-  renderMap('H');
+  const map = document.getElementById('map');
+
+if (map) {
+  document.querySelectorAll('[data-block]').forEach(btn => {
+    btn.classList.toggle(
+      'active',
+      btn.dataset.block === currentBlock
+    );
+  });
+
+  renderMap(currentBlock);
+}
 }
 
   const reservations = getReservations();
